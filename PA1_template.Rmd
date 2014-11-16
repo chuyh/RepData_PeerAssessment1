@@ -1,0 +1,121 @@
+```{r packages, echo=FALSE, message=FALSE}
+library(data.table)
+library(dplyr)
+setwd("/Users/jeherrera/Box Sync/Courses/Data Science - Specialization/5 - Reproducible Research/Week 2")
+```
+---
+title: "Peer Assigment 1 - Reproducible Research"
+output: html_document
+---
+
+This the the R Markdown document for the first assignment.
+
+I will greatly appreciate the **comments** that you may have. Thank you!
+
+### Loading and preprocessing the data
+
+
+```{r loading_and_processing_data}
+data <- read.csv("./activity.csv")
+data <- filter(data, !is.na(steps))
+dim(data)
+head(data, 20)
+
+data$date <- as.Date(data$date, format="%Y-%m-%d")
+
+data$year <- as.numeric(format(data$date, format="%Y"))
+data$month <- as.numeric(format(data$date, format="%m"))
+data$day <- as.numeric(format(data$date, format="%d"))
+```
+
+### What is mean total number of steps taken per day?
+
+```{r first part}
+par(mfrow = c(1,1))
+data <- read.csv("./activity.csv")
+data <- filter(data, !is.na(steps))
+data_per_prueba <- select(data, steps, date)
+data_per_prueba <- group_by(data, date)
+var <- summarise(data_per_prueba, suma = sum(steps))
+barplot(var$suma, xlab = "Dates")
+
+#calculate the mean
+mean(var$suma)
+#calculate the median
+median(var$suma)
+```
+
+### What is the average daily activity pattern?
+
+```{r second part}
+data <- read.csv("./activity.csv")
+data <- filter(data, !is.na(steps))
+data_for_interval <- select(data, steps, interval)
+data_for_interval <- group_by(data_for_interval, interval)
+var1 <- summarise(data_for_interval, ave = mean(steps))
+plot(var1$interval, var1$ave, type="l")
+
+#print the max in the Average
+head(arrange(var1, desc(ave)), 1)[,2]
+```
+
+### Imputing missing values
+
+```{r third part}
+data_na <- read.csv("./activity.csv")
+dim(data_na[is.na(data_na$steps),])[1]
+#data that does not contain NAs
+data_nna <- filter(data_na, !is.na(steps))
+data_per_prueba1 <- select(data_nna, steps, interval)
+data_per_prueba1 <- group_by(data_nna, interval)
+var <- summarise(data_per_prueba1, suma = mean(steps))
+colnames(data_na)
+colnames(var)
+var
+
+var[var$interval==0,]   
+for (i in 1:length(data_na$steps))
+{
+    if(is.na(data_na[i,1]))
+    {
+        data_na[i,1] <- as.integer(var[var$interval==data_na[i,3],2])
+    }
+}
+
+data_for_last <- data_na
+
+data_for_final <- select(data_na, steps, date)
+data_for_final <- group_by(data_for_final, date)
+data_for_final <- summarise(data_for_final, m = sum(steps))
+barplot(data_for_final$m, xlab = "Dates")
+
+#calculate mean
+mean(data_for_final$m)
+
+#calculate median
+median(data_for_final$m)
+```
+
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+```{r last part}
+data_for_last$date <- as.Date(data_for_last$date, format="%Y-%m-%d")
+data_for_last$day_type <- (lapply(data_for_last$date, function(x){if((weekdays(x) == "Saturday") | (weekdays(x) == "Sunday")){print("weekend")} else{print("weekday")}}))
+data_for_last$day_type <- unlist(data_for_last$day_type)
+
+sum_weekday <- select(data_for_last[data_for_last$day_type=="weekday",], steps, interval)
+
+sum_weekend <- select(data_for_last[data_for_last$day_type=="weekend",], steps, interval)
+
+#group_by(sum_weekday, interval, ave = mean(steps))
+par(mfrow=c(2,1))
+sum_weekday <- group_by(sum_weekday, interval)
+sum_weekday <- summarise(sum_weekday, ave = mean(steps))
+plot(sum_weekday$interval,sum_weekday$ave, type="l", main="weekday", xlab = "", ylab = "")
+
+sum_weekend <- group_by(sum_weekend, interval)
+sum_weekend <- summarise(sum_weekend, ave = mean(steps))
+plot(sum_weekend$interval,sum_weekend$ave, type="l", main="weekend", xlab = "interval", ylab = "steps")
+
+```
